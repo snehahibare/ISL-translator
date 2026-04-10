@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time Indian Sign Language Translator powered by Deep Learning LSTM — 318+ signs">
+    <title>ISL Translator — AI-Powered Sign Language</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-noise"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-grid"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon-wrap">
+                    <span class="logo-icon">🤟</span>
+                </div>
+                <div>
+                    <h1 class="logo-text">ISL<span class="logo-text-accent"> Translator</span></h1>
+                    <span class="logo-sub">Deep Learning · Indian Sign Language</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="model-capsule" id="modelInfo">
+                <span class="model-dot"></span>
+                <button class="model-label model-btn" onclick="openModelModal()">🧠 LSTM Neural Net</button>
+                <div class="model-divider"></div>
+                <span class="model-label" id="signsCountBadge">⚡ 318+ Signs</span>
+                <div class="model-divider"></div>
+                <span class="model-label">🎯 High Accuracy</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-header-action" onclick="openGalleryModal()" title="Sign Gallery">📚 Gallery</button>
+            <a href="https://github.com" target="_blank" rel="noopener" class="btn-header-action github-link" title="View on GitHub">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                GitHub
+            </a>
+            <button class="btn-theme" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+                <span class="theme-icon-light" style="display:none;">☀️</span>
+                <span class="theme-icon-dark">🌙</span>
+            </button>
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item"><span class="stat-value" id="statSigns">318+</span><span class="stat-label">Signs Recognized</span></div>
+        <div class="stat-sep"></div>
+        <div class="stat-item"><span class="stat-value">LSTM</span><span class="stat-label">Deep Learning Model</span></div>
+        <div class="stat-sep"></div>
+        <div class="stat-item"><span class="stat-value">Real-Time</span><span class="stat-label">Live Translation</span></div>
+        <div class="stat-sep"></div>
+        <div class="stat-item"><span class="stat-value">AI + NLP</span><span class="stat-label">Sentence Building</span></div>
+        <div class="stat-sep"></div>
+        <div class="stat-item"><span class="stat-value" id="statSessions">0</span><span class="stat-label">Signs This Session</span></div>
+    </div>
+
+    <main class="main-container">
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <div class="section-header">
+                <span class="section-tag">📸 LIVE FEED</span>
+                <h2 class="section-title">Camera Input</h2>
+            </div>
+            <div class="camera-wrapper" id="cameraWrapper">
+                <video id="videoFeed" autoplay playsinline muted></video>
+                <canvas id="canvasCapture" style="display:none;"></canvas>
+                <!-- Hand Skeleton Overlay -->
+                <canvas id="skeletonCanvas" class="skeleton-canvas"></canvas>
+                <div class="scan-line" id="scanLine"></div>
+                <div class="cam-corner cam-corner-tl"></div>
+                <div class="cam-corner cam-corner-tr"></div>
+                <div class="cam-corner cam-corner-bl"></div>
+                <div class="cam-corner cam-corner-br"></div>
+                <div class="hand-indicator" id="handIndicator">
+                    <span class="hand-pulse"></span><span>No Hands Detected</span>
+                </div>
+                <div class="fps-counter"><span id="fpsValue">-- FPS</span></div>
+                <!-- Progress Ring -->
+                <div class="progress-ring-wrap" id="progressRingWrap">
+                    <svg class="progress-ring-svg" width="54" height="54" viewBox="0 0 54 54">
+                        <circle class="ring-bg" cx="27" cy="27" r="22"/>
+                        <circle class="ring-fill" id="ringFill" cx="27" cy="27" r="22" transform="rotate(-90 27 27)"/>
+                    </svg>
+                    <span class="ring-text" id="ringText">0%</span>
+                </div>
+                <div class="buffer-bar">
+                    <div class="buffer-fill" id="bufferFill"></div>
+                    <span class="buffer-label" id="bufferLabel">0 / 30</span>
+                </div>
+                <div class="prediction-overlay" id="predictionOverlay">
+                    <span class="pred-icon">✦</span>
+                    <span class="prediction-label" id="predLabel">—</span>
+                    <span class="prediction-conf" id="predConf">0%</span>
+                </div>
+                <div class="camera-intro" id="cameraIntro">
+                    <div class="intro-content">
+                        <div class="intro-rings">
+                            <div class="intro-ring"></div>
+                            <div class="intro-ring"></div>
+                            <span class="intro-emoji">🖐️</span>
+                        </div>
+                        <h2>Ready to Translate</h2>
+                        <p>Click <strong>Start Translation</strong> and show ISL signs</p>
+                        <div class="intro-tags">
+                            <span class="intro-tag">✓ 318+ Signs</span>
+                            <span class="intro-tag">✓ Hand Skeleton AI</span>
+                            <span class="intro-tag">✓ NLP Sentences</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Controls -->
+            <div class="camera-controls">
+                <button class="btn btn-primary btn-lg" id="btnStart" onclick="startTranslation()"><span class="btn-icon">▶</span> Start Translation</button>
+                <button class="btn btn-danger btn-lg" id="btnStop" onclick="stopTranslation()" style="display:none;"><span class="btn-icon">⏹</span> Stop</button>
+                <button class="btn btn-secondary" onclick="clearSentence()"><span class="btn-icon">🗑</span> Clear</button>
+                <button class="btn btn-ghost" onclick="toggleMirror()" title="Mirror">🔄</button>
+                <button class="btn btn-ghost" id="btnSwapHands" onclick="toggleSwapHands()" title="Swap Hands (fix left/right detection)">🔀</button>
+                <button class="btn btn-ghost" id="btnVoice" onclick="toggleVoiceCommand()" title="Voice Commands">🎤</button>
+                <button class="btn btn-ghost" onclick="startTour()" title="Help">❓</button>
+            </div>
+            <!-- Voice Status -->
+            <div class="voice-status" id="voiceStatus" style="display:none;">
+                <span class="voice-dot"></span>
+                <span id="voiceStatusText">Listening... say "start", "stop", "translate"</span>
+            </div>
+            <!-- Tips Panel -->
+            <div class="tips-panel">
+                <div class="tip-icon">💡</div>
+                <div class="tip-text" id="tipText">Make sure your hand is clearly visible for best accuracy.</div>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="output-section">
+            <!-- Sign Card -->
+            <div class="card card-sign" id="cardSign">
+                <div class="card-glow"></div>
+                <div class="card-header">
+                    <span class="card-icon">🖐️</span>
+                    <h2>Detected Sign</h2>
+                    <span class="live-badge">● LIVE</span>
+                    <button class="btn btn-small btn-ghost" onclick="openModelModal()" title="Model Info" style="margin-left:auto;">ℹ️</button>
+                </div>
+                <div class="card-body">
+                    <div class="sign-display">
+                        <span class="sign-word" id="signWord">—</span>
+                        <div class="sign-meta"><span class="sign-meta-label">Confidence</span></div>
+                        <div class="confidence-bar-container">
+                            <div class="confidence-bar" id="confidenceBar"></div>
+                            <span class="confidence-text" id="confidenceText">0%</span>
+                        </div>
+                    </div>
+                    <!-- Sparkline Chart -->
+                    <div class="sparkline-container">
+                        <span class="sparkline-label">Confidence History (last 30)</span>
+                        <canvas id="sparklineCanvas" class="sparkline-canvas" height="48"></canvas>
+                    </div>
+                    <!-- Top-3 Alternatives -->
+                    <div class="top3-container" id="top3Container" style="display:none;">
+                        <span class="top3-label">Top Alternatives</span>
+                        <div class="top3-list" id="top3List"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word Sequence -->
+            <div class="card card-words">
+                <div class="card-header">
+                    <span class="card-icon">📝</span>
+                    <h2>Word Sequence</h2>
+                    <span class="word-count" id="wordCount">0 words</span>
+                </div>
+                <div class="card-body">
+                    <div class="words-display" id="wordsDisplay">
+                        <span class="placeholder-text">Signs will appear here as you gesture...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Translation -->
+            <div class="card card-sentence">
+                <div class="card-header">
+                    <span class="card-icon">🧠</span>
+                    <h2>AI Translation</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-small btn-glow" onclick="translateWithAI()">✨ Translate</button>
+                        <button class="btn btn-small btn-ghost" onclick="copySentence()" title="Copy">📋</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="sentence-display">
+                        <p class="sentence-text" id="sentenceText">Waiting for signs...</p>
+                    </div>
+                    <button class="btn btn-accent btn-speak" onclick="speakSentence()">
+                        <span class="speak-icon">🔊</span> <span id="speakText">Speak Aloud</span>
+                        <div class="audio-waves" id="audioWaves" style="display:none;">
+                            <span class="wave"></span><span class="wave"></span><span class="wave"></span><span class="wave"></span><span class="wave"></span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card card-history">
+                <div class="card-header">
+                    <span class="card-icon">📜</span>
+                    <h2>History</h2>
+                    <span class="history-count" id="historyCount">0</span>
+                    <div class="header-actions" style="margin-left:auto;">
+                        <button class="btn btn-small btn-ghost" onclick="openAnalyticsModal()" title="Stats">📊</button>
+                        <button class="btn btn-small btn-secondary" onclick="exportTranscript()">📥 TXT</button>
+                        <button class="btn btn-small btn-secondary" onclick="exportPDF()">🗒️ PDF</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="history-list" id="historyList">
+                        <span class="placeholder-text">Translations will be logged here...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="signs-ticker">
+                <span class="ticker-label">✦ Supported Signs</span>
+                <div class="ticker-track"><div class="ticker-scroll" id="tickerScroll"></div></div>
+            </div>
+            <div class="footer-credit">Built with <span class="heart">♥</span> using Deep Learning · MediaPipe · FastAPI</div>
+        </div>
+    </footer>
+
+    <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+    <!-- MODAL: Sign Gallery -->
+    <div class="modal-overlay" id="galleryModal" onclick="handleModalClick(event,'galleryModal')">
+        <div class="modal-box modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div><h2 class="modal-title">📚 Sign Reference Gallery</h2><p class="modal-sub">All <span id="galleryTotal">318+</span> supported ISL signs</p></div>
+                <button class="modal-close" onclick="closeModal('galleryModal')">✕</button>
+            </div>
+            <div class="modal-search-wrap">
+                <input type="text" id="gallerySearch" class="modal-search" placeholder="🔍 Search signs..." oninput="filterGallery()">
+                <span class="search-count" id="searchCount"></span>
+            </div>
+            <div class="gallery-grid" id="galleryGrid"><div class="gallery-loading">Loading signs...</div></div>
+        </div>
+    </div>
+
+    <!-- MODAL: Model Info -->
+    <div class="modal-overlay" id="modelModal" onclick="handleModalClick(event,'modelModal')">
+        <div class="modal-box modal-md" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div><h2 class="modal-title">🧠 Model Architecture</h2><p class="modal-sub">Deep Learning LSTM Neural Network</p></div>
+                <button class="modal-close" onclick="closeModal('modelModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="model-arch">
+                    <div class="arch-layer"><div class="arch-badge ab-input">INPUT</div><div class="arch-desc">258 keypoints × 30 frames = 7,740 features per sequence</div></div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-layer"><div class="arch-badge ab-lstm">LSTM × 2</div><div class="arch-desc">128 → 64 units with Dropout(0.3) regularization</div></div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-layer"><div class="arch-badge ab-dense">DENSE</div><div class="arch-desc">64 → 32 units with ReLU activation + BatchNorm</div></div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-layer"><div class="arch-badge ab-output">OUTPUT</div><div class="arch-desc">318+ classes with Softmax — threshold 0.70</div></div>
+                </div>
+                <div class="model-stats-grid">
+                    <div class="model-stat"><span class="ms-val">MediaPipe</span><span class="ms-label">Landmark Engine</span></div>
+                    <div class="model-stat"><span class="ms-val">TF/Keras</span><span class="ms-label">Framework</span></div>
+                    <div class="model-stat"><span class="ms-val">10 FPS</span><span class="ms-label">Frame Rate</span></div>
+                    <div class="model-stat"><span class="ms-val">FastAPI</span><span class="ms-label">Backend</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Analytics -->
+    <div class="modal-overlay" id="analyticsModal" onclick="handleModalClick(event,'analyticsModal')">
+        <div class="modal-box modal-md" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div><h2 class="modal-title">📊 Session Analytics</h2><p class="modal-sub">Your translation session statistics</p></div>
+                <button class="modal-close" onclick="closeModal('analyticsModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-grid">
+                    <div class="analytics-card"><span class="analytics-val" id="aDuration">0:00</span><span class="analytics-label">Duration</span></div>
+                    <div class="analytics-card"><span class="analytics-val" id="aSignCount">0</span><span class="analytics-label">Signs Detected</span></div>
+                    <div class="analytics-card"><span class="analytics-val" id="aTranslations">0</span><span class="analytics-label">AI Translations</span></div>
+                    <div class="analytics-card"><span class="analytics-val" id="aTopSign">—</span><span class="analytics-label">Top Sign</span></div>
+                    <div class="analytics-card"><span class="analytics-val" id="aSPM">0</span><span class="analytics-label">Signs/Min</span></div>
+                    <div class="analytics-card"><span class="analytics-val" id="aAvgConf">0%</span><span class="analytics-label">Avg Confidence</span></div>
+                </div>
+                <div class="analytics-chart-section">
+                    <h3 class="analytics-chart-title">Top Signs Frequency</h3>
+                    <div id="analyticsChart" class="analytics-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOUR Overlay -->
+    <div class="tour-overlay" id="tourOverlay" style="display:none;">
+        <div class="tour-card" id="tourCard">
+            <div class="tour-dots" id="tourDots"></div>
+            <div class="tour-icon" id="tourIcon">👋</div>
+            <h3 class="tour-title" id="tourTitle">Welcome!</h3>
+            <p class="tour-desc" id="tourDesc">Let's take a quick tour of the ISL Translator.</p>
+            <div class="tour-actions">
+                <button class="btn btn-ghost btn-small" onclick="endTour()">Skip</button>
+                <button class="btn btn-primary btn-small" id="tourNextBtn" onclick="nextTourStep()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

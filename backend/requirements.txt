@@ -1,0 +1,10 @@
+opencv-python
+mediapipe
+numpy
+scikit-learn
+fastapi
+uvicorn[standard]
+python-multipart
+pyttsx3
+google-generativeai
+tensorflow
